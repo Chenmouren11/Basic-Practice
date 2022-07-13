@@ -1,5 +1,8 @@
 package com.example.basicpractice;
 
+import android.content.ComponentName;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -8,6 +11,8 @@ import com.google.android.material.snackbar.Snackbar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
+import android.os.IBinder;
+import android.util.Log;
 import android.view.View;
 
 import android.view.Menu;
@@ -15,42 +20,54 @@ import android.view.MenuItem;
 
 public class MainActivity extends AppCompatActivity {
 
-    @Override
+    private bindServiceA service = null;
+    private boolean isBind = false;
+
+    private ServiceConnection conn = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder binder) {
+            isBind = true;
+            bindServiceA.MyBinder myBinder = (bindServiceA.MyBinder) binder;
+            service = myBinder.getService();//通过ServiceConnection 中的IBinder获取 绑定的service对象
+            Log.i("Finn", "ActivityA - onServiceConnected");
+            int num = service.getRandomNumber();//通过service对象可对  bindServiceA中的函数进行操作
+            Log.i("Kathy", "ActivityA - getRandomNumber = " + num);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            isBind = false;
+            Log.i("Finn", "ActivityA - onServiceDisconnected");
+        }
+    };
+
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-
-        FloatingActionButton fab = findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
+        Log.i("Finn", "ActivityA - onCreate - Thread = " + Thread.currentThread().getName());
+        bindservice();
+        unbindservice();
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
+    private void bindservice(){
+        Intent intent = new Intent(this, bindServiceA.class);
+        intent.putExtra("from", "ActivityA");
+        Log.i("Finn", "ActivityA 执行 bindServiceA");
+        bindService(intent, conn, BIND_AUTO_CREATE);//通过该方法绑定服务（周期：onCreate（）------》onbind（））
+
     }
+    private void unbindservice(){
+        //单击了“unbindService”按钮
+        if (isBind) {
+            Log.i("Finn", "ActivityA 执行 unbindService");
+            unbindService(conn);//通过该方法解除绑定服务  周期：----先执行  onunbind（）---》onDestroy（）
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
         }
+    }
 
-        return super.onOptionsItemSelected(item);
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.i("Finn", "ActivityA - onDestroy");
     }
 }
