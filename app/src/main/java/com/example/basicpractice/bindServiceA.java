@@ -25,7 +25,7 @@ public class bindServiceA extends Service {
 
     @Override
     public void onCreate() {
-        Log.i("Finn", " viceA - onCreate - Thread = " + Thread.currentThread().getName());
+        Log.i("Finn", "ServiceA - onCreate - Thread = " + Thread.currentThread().getName());
         super.onCreate();
     }
 
