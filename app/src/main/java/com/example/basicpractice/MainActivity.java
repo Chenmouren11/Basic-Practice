@@ -1,6 +1,7 @@
 package com.example.basicpractice;
 
 import android.content.ComponentName;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
@@ -17,6 +18,7 @@ import android.view.View;
 
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Button;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -26,12 +28,12 @@ public class MainActivity extends AppCompatActivity {
     private ServiceConnection conn = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder binder) {
-            isBind = true;
             bindServiceA.MyBinder myBinder = (bindServiceA.MyBinder) binder;
             service = myBinder.getService();//通过ServiceConnection 中的IBinder获取 绑定的service对象
             Log.i("Finn", "ActivityA - onServiceConnected");
             int num = service.getRandomNumber();//通过service对象可对  bindServiceA中的函数进行操作
             Log.i("Kathy", "ActivityA - getRandomNumber = " + num);
+            isBind = true;
         }
 
         @Override
@@ -46,7 +48,13 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         Log.i("Finn", "ActivityA - onCreate - Thread = " + Thread.currentThread().getName());
         bindservice();
-        unbindservice();
+        Button button = findViewById(R.id.button_first);
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                unbindservice();
+            }
+        });
     }
 
     private void bindservice(){
