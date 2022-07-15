@@ -54,10 +54,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 unbindservice();
+                Intent intent = new Intent("com.example.basicpractice.MY_BROADCAST");
+                //指明要发送的广播值
+                sendBroadcast(intent);
             }
         });
         intentFilter = new IntentFilter();
-        intentFilter.addAction("android.net.conn.CONNECTIVITY_CHANGE");
+        intentFilter.addAction("com.example.basicpractice.MY_BROADCAST");
         myReceiver = new MyBroadcastReceiver();
         registerReceiver(myReceiver, intentFilter);
     }
