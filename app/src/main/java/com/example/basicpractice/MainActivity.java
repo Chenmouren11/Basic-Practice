@@ -1,10 +1,14 @@
 package com.example.basicpractice;
 
+import android.annotation.SuppressLint;
 import android.content.ComponentName;
+import android.content.ContentValues;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -20,6 +24,8 @@ import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -65,6 +71,48 @@ public class MainActivity extends AppCompatActivity {
         registerReceiver(myReceiver, intentFilter);
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    public void onClickAddName(View view) {
+        // Add a new student record
+        ContentValues values = new ContentValues();
+
+        values.put(StudentsProvider.NAME,
+                ((EditText)findViewById(R.id.editText2)).getText().toString());
+
+        values.put(StudentsProvider.GRADE,
+                ((EditText)findViewById(R.id.editText3)).getText().toString());
+
+        Uri uri = getContentResolver().insert(
+                StudentsProvider.CONTENT_URI, values);
+
+        Toast.makeText(getBaseContext(),
+                uri.toString(), Toast.LENGTH_LONG).show();
+    }
+
+    @SuppressLint("Range")
+    public void onClickRetrieveStudents(View view) {
+
+        // Retrieve student records
+        String URL = "content://com.example.provider.College/students";
+
+        Uri students = Uri.parse(URL);
+        Cursor c = managedQuery(students, null, null, null, "name");
+
+        if (c.moveToFirst()) {
+            do{
+                Toast.makeText(this,
+                        ((Cursor) c).getString(c.getColumnIndex(StudentsProvider._ID)) +
+                                ", " +  c.getString(c.getColumnIndex(StudentsProvider.NAME)) +
+                                ", " + c.getString(c.getColumnIndex(StudentsProvider.GRADE)),
+                        Toast.LENGTH_SHORT).show();
+            } while (c.moveToNext());
+        }
+    }
     private void bindservice(){
         Intent intent = new Intent(this, bindServiceA.class);
         intent.putExtra("from", "ActivityA");
