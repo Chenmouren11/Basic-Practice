@@ -14,21 +14,24 @@
 
 8.当时我也不算失落，正准备进行下一步尝试在T版本当中安装S版本的apk再安装T版本的apk看看能否复现bug，如果成功这样也能输出想要的日志。可是在刚刚将手机版本从S版本升级到T版本后，日常观察是否有bug出现日志时，我惊奇的发现开机时居然输出了我在代码中写的日志，这时我才真正反应过来，在S版本上安装T版本的apk虽然会崩溃，但是apk是保存了下来，在升级到T版本后apk却不用更新。虽然发现了这个可行的验证方法，但我还是坚持对正准备尝试的方法进行了验证，毕竟老是把版本刷来刷去验证很慢。但是结果却让我比较失望，通过再T版本安装S版本的apk再安装回T版本的apk并不会复现bug，bug好像只会发生在S升级到T版本后的第一次开机后。
 
-9.虽然简单的验证方法失败了，但是我还是通过在S版本上刷T版本apk然后再升级到T版本的方式在logcat当中打印出了自己的日志，通过输出的日志我首先是排查出来删除Shortcut的具体代码位置，结果让我很意外执行删除的操作的位置居然是在getAppsList()当中，这让我很意外。在找到具体位置后，我又通过？？？？？抛出调用getAppsList()的路径，发现启动getAppsList()最初的源头是系统的程序，这就排除了调用getAppsList()误删数据的可能。
+9.虽然简单的验证方法失败了，但是我还是通过在S版本上刷T版本apk然后再升级到T版本的方式在logcat当中打印出了自己的日志，通过输出的日志我首先是排查出来删除Shortcut的具体代码位置，结果让我很意外执行删除的操作的位置居然是在getAppsList()当中，这让我很意外。在找到具体位置后，我又通过Log.e(TAG, "",new Throwable())抛出调用getAppsList()的路径，发现启动getAppsList()最初的源头是系统的程序，这就排除了调用getAppsList()误删数据的可能。
 
-10.之后我通过对getAppsList()的代码逻辑进行分析，发现想要删除shortcut就需要？？？？抛出一个null异常，继续对代码分析，发现只有当？？？？返回为null时，？？？会抛出null异常，而？？？？返回值为null这说明当前shortcut的packagName不在系统的mShortcutsList当中,而这显然是不符合逻辑的。因此我在此处进行了很多日志打印，包括在对mShortcutsList进行初始化和更新操作的？？？？？当中使用API？？？？获得系统中所有的Shortcut的前后对mShortcutsList的长度进行打印和对？？？？进行实例化的各个过程当中的各个节点状态都进行打印。通过对日志的观察，我发现造成bug的根本原因就是在S版本升级到T版本后第一次开机时，第一次调用API？？？获得系统中所有的Shortcut时会抛出一个？？？？的异常，到此我已经确定了造成bug的原因。
+10.之后我通过对getAppsList()的代码逻辑进行分析，发现想要删除shortcut就需要Item.AppItem抛出一个null异常，继续对代码分析，发现只有当ShortcutUtil.getInstance(mContext).getShortcutInfo()返回为null时，Item.AppItem会抛出null异常，而ShortcutUtil.getInstance(mContext).getShortcutInfo()返回值为null这说明当前shortcut的packagName不在系统的mShortcutsList当中,而这显然是不符合逻辑的。因此我在此处进行了很多日志打印，包括在对mShortcutsList进行初始化和更新操作的createShortcutInfoList()当中使用API(mContext.getSystemService(LauncherApps.class).getShortcuts())获得系统中所有的Shortcut的前后对mShortcutsList的长度进行打印和对getInstance()进行实例化的各个过程当中的各个节点状态都进行打印。通过对日志的观察，我发现造成bug的根本原因就是在S版本升级到T版本后第一次开机时，第一次调用API(mContext.getSystemService(LauncherApps.class).getShortcuts())获得系统中所有的Shortcut时会抛出一个RemoteException(User 0 is locked or not running)的异常，到此我已经确定了造成bug的原因。
 
-11.在知道造出bug的原因之后接下来就是通过尽量少的代码修改解决掉bug，因为在在第一次调用API？？？时获得ShortcutsList失败，因此我的简单解决思路就是在在调用API？？？处不断循环，直至获得的mShortcutsList长度正常，这种方法经过尝试是有效的，但是因为？？？会在多个地方会被经常调用，因此这种修改方法可能会造成更大的问题。在和？？？同事的不断研究讨论过后我们我们决定在getAppsList()当中的？？？？处添加判断条件作为解决bug的方法。首先我们尝试的时加入？？？？？，作为判断条件，希望能在Sidesense完全启动以后才能进行
+11.在知道造出bug的原因之后接下来就是通过尽量少的代码修改解决掉bug，因为在在第一次调用API(mContext.getSystemService(LauncherApps.class).getShortcuts())时获得ShortcutsList失败，因此我的简单解决思路就是在在调用(mContext.getSystemService(LauncherApps.class).getShortcuts())处不断循环，直至获得的mShortcutsList长度正常，这种方法经过尝试是有效的，但是因为createShortcutInfoList()会在多个地方会被经常调用，因此这种修改方法可能会造成更大的问题。在和黄代智同事的不断研究讨论过后我们我们决定在getAppsList()当中的else if (!TextUtils.isEmpty(shortcutName))处添加判断条件作为解决bug的方法。首先我们尝试的是加入getCurrentTask(mcontext)，作为判断条件，希望能在Sidesense完全启动以后才能进行
 
-？？？？？
+```
+ else if (!TextUtils.isEmpty(shortcutName) && getCurrentTask(mcontext)) {
+    appItem = new Item.AppItem(mContext, 0,
+            ShortcutUtil.getInstance(mContext).
+                    getShortcutInfo(shortcutName, componentName));
+```
 
-？？？？?
+但是这种方法最终失败，因为方法getCurrentTask()的调用会导致null指针异常。之后我们选择使用ShortcutUtil.getInstance(mContext).getShortcutsList().size()>0作为判断条件，经过尝试我们发现这种方法能够有效的解决bug，同时这样修改带代码的整体影响也很小。
 
-但是这种方法最终失败，因为方法？？？？的调用会导致null指针异常。之后我们选择使用？？？作为判断条件，经过尝试我们发现这种方法能够有效的解决bug，同时这样修改带代码的整体影响也很小。
-
-12.在修改好代码之后，接下来需要在本地提交代码，提交代码的需要添加？？？？信息，添加？？？信息的歌手可以参考前面的提交记录。
+12.在修改好代码之后，接下来需要在本地提交代码，提交代码的需要添加commit信息，添加commit信息的格式可以参考前面的提交记录。
 
 13.完成本地代码的提交之后，就可以将代码push的线上进行代码review了，首先需要自己review+2，之后等等待组内review+1，如果组内有commit修改，可以在线上修改之后publish edit，之后又重新开始一遍review过程，等待组内review通过后，就可以邀请客户review，等待客户review+1后就可以进行submit代码入库了。
 
-14.master分支入场成功后，可以使用？？？？？将master分支的提交记录同步的？？？和？？？分支当中，然后对这两分支进行一遍代码review过程就完成票system-5543的全部调查。在票里添加相关comment后就可以关闭票了。
+14.master分支入场成功后，可以使用Cherry Pick将master分支的提交记录同步的其他分支当中，然后对这两分支进行一遍代码review过程就完成票system-5543的全部调查。在票里添加相关comment后就可以关闭票了。
 
