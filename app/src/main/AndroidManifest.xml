@@ -11,6 +11,8 @@
         android:theme="@style/AppTheme">
         <service android:name=".bindServiceA"
             android:exported="false"/>
+        <service android:name=".MyService"
+            android:exported="false"/>
         <activity
             android:name=".MainActivity"
             android:label="@string/app_name"
